@@ -9,6 +9,9 @@ class FileProcessorFactory:
     
     def get_processor(self, file_name: str):
         try:
+            part_1 = file_name.split('_')[0]
+            if part_1.isdigit():
+                file_name = file_name.replace(str(part_1+'_'),"")
             # استخراج نام پردازشگر از نام فایل
             processor_name = self._extract_processor_name(file_name)
             
