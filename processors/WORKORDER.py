@@ -82,7 +82,8 @@ class WORKORDERProcessor(BaseProcessor):
             ]
 
             # 2. Check if CSV file already has the expected headers
-            with open(csv_file_path, 'r', encoding='utf-8') as csvfile:
+            # FIX: Changed encoding to 'Windows-1252' to prevent crash on readlines()
+            with open(csv_file_path, 'r', encoding='Windows-1252') as csvfile:
                 first_line = csvfile.readline().strip()
                 first_line_headers = [h.strip() for h in first_line.split(',')]
                 has_expected_headers = first_line_headers == headers
@@ -94,6 +95,7 @@ class WORKORDERProcessor(BaseProcessor):
                     temp_path = os.path.join(temp_dir, os.path.basename(csv_file_path) + ".tmp")
                     
                     try:
+                        # We write the temp file as UTF-8 (standard)
                         with open(temp_path, 'w', newline='', encoding='utf-8') as temp_file:
                             temp_file.write(','.join(headers) + '\n')
                             temp_file.write(first_line + '\n')  # Write the first line as data
@@ -111,7 +113,8 @@ class WORKORDERProcessor(BaseProcessor):
             updated_rows = 0
             new_rows = 0
             
-            with open(csv_file_path, 'r', encoding='utf-8') as csvfile:
+            # FIX: Read with 'Windows-1252' to match the source file format
+            with open(csv_file_path, 'r', encoding='Windows-1252') as csvfile:
                 csvreader = csv.DictReader(csvfile)
                 actual_headers = [h.strip() for h in csvreader.fieldnames]
                 
@@ -132,10 +135,15 @@ class WORKORDERProcessor(BaseProcessor):
                     try:
                         # Convert None or empty values to empty strings
                         complete_row = {h: row.get(h, '') or '' for h in actual_headers}
-                        # Trim spaces for all columns
+                        
+                        # Trim spaces and clean special chars for all columns
                         for header in actual_headers:
                             value = complete_row[header]
                             if value is not None:
+                                # FIX: Replace degree symbol (or other special chars) like in ORDERSUMMARYProcessor
+                                if isinstance(value, str):
+                                    value = value.replace('°', 'deg')
+                                
                                 # If the value is all whitespace, set to empty string
                                 if value.strip() == '':
                                     complete_row[header] = ''
