@@ -1,0 +1,34 @@
+[paths]
+path1 = /home/ali/Documents/csv_source/s1
+path2 = /home/ali/Documents/csv_source/s2
+move_path1 = /home/ali/Documents/csv_source/m1
+move_path2 = /home/ali/Documents/csv_source/m2
+source_pdf = /home/ali/Documents/csv_source/pdf1
+move_pdf = /home/ali/Documents/csv_source/pdf2
+
+[odoo]
+odoo_server = 127.0.0.1
+odoo_db = odoo_new_19
+odoo_user = odoo
+odoo_pass = odoo
+odoo_port = 5432
+
+[emails]
+emails = [
+	{
+	"email": "develmissions@gmail.com",
+	"glass": true,
+	"frame": true,
+	"rush": true,
+	"casingcutting": true,
+	"optlabel": true,
+	"casing": true,
+	"extention": true,
+	"urbancutting": true,
+	"wrapping": true
+	}
+	]
+
+[monitoring]
+interval = 30
+

@@ -233,7 +233,7 @@ class EmailNotifier:
     def get_recipients_for_table(self, table_name):
         """Get email recipients for specific table type"""
         recipients = []
-        table_type = self._determine_table_type(table_name)
+        table_type = table_name
         if not table_type:
             self.logger.warning(f"No table type matched for: {table_name}")
             return recipients
@@ -265,7 +265,11 @@ class EmailNotifier:
             'casing': ['casing'],
             'extention': ['extention'],
             'urbancutting': ['urbancutting'],
-            'wrapping': ['wrapping']
+            'wrapping': ['wrapping'],
+            'extentioncutting': ['extentioncutting'],
+            'mullioncutting': ['mullioncutting'],
+            'screencutting':['screencutting'],
+            'stopcutting': ['stopcutting']
         }
         
         for table_type, keywords in patterns.items():
