@@ -117,7 +117,7 @@ class CASINGCUTTINGProcessor(BaseProcessor):
             
             # 3. Collect all rows and check for resends
             rows_to_insert = []
-            order_ids = set()  # Track unique ORDER values in the file
+            order_IDs = set()  # Track unique ORDER values in the file
             resends = []
             
             with open(csv_file_path, 'r', encoding='utf-8') as csvfile:
@@ -148,19 +148,19 @@ class CASINGCUTTINGProcessor(BaseProcessor):
                                     complete_row[header] = value.strip()
 
                         # --- CHANGE START ---
-                        # Remap 'ID' to '_id' to avoid conflict with PK
+                        # Remap 'ID' to '_ID' to avoid conflict with PK
                         if 'ID' in complete_row:
-                            complete_row['_id'] = complete_row.pop('ID')
+                            complete_row['_ID'] = complete_row.pop('ID')
                         # --- CHANGE END ---
 
-                        order_id = complete_row.get('ORDER', '')
+                        order_ID = complete_row.get('ORDER', '')
 
-                        if not order_id:
+                        if not order_ID:
                             self.logger.warning(f"Skipping row with missing ORDER: {complete_row}")
                             continue
 
                         # Collect unique ORDER values
-                        order_ids.add(order_id)
+                        order_IDs.add(order_ID)
                         rows_to_insert.append(complete_row)
 
                     except Exception as e:
@@ -169,26 +169,26 @@ class CASINGCUTTINGProcessor(BaseProcessor):
 
             # 4. Check for existing orders in the database
             cursor = self.connection.cursor()
-            for order_id in order_ids:
+            for order_ID in order_IDs:
                 try:
                     query = f"SELECT `ORDER`, `DATE` FROM `{table_name}` WHERE `ORDER` = %s LIMIT 1"
-                    cursor.execute(query, (order_id,))
+                    cursor.execute(query, (order_ID,))
                     existing_order = cursor.fetchone()
                     
                     if existing_order:
                         resends.append({
-                            'order': order_id,
+                            'order': order_ID,
                             'original_date': existing_order[1] or ''
                         })
-                        self.logger.info(f"Found existing ORDER for resend: {order_id}")
+                        self.logger.info(f"Found existing ORDER for resend: {order_ID}")
                 except Exception as e:
-                    self.logger.error(f"Error checking ORDER {order_id}: {str(e)}")
+                    self.logger.error(f"Error checking ORDER {order_ID}: {str(e)}")
                     continue
 
             # 5. Create table if it doesn't exist
             # --- CHANGE START ---
-            # Map actual CSV headers to DB columns (ID -> _id)
-            db_columns = ['_id' if h == 'ID' else h for h in actual_headers]
+            # Map actual CSV headers to DB columns (ID -> _ID)
+            db_columns = ['_ID' if h == 'ID' else h for h in actual_headers]
             
             cursor.execute(f"SHOW TABLES LIKE '{table_name}'")
             if not cursor.fetchone():
@@ -200,7 +200,7 @@ class CASINGCUTTINGProcessor(BaseProcessor):
             rows_inserted = 0
             if rows_to_insert:
                 try:
-                    # db_columns is already prepared (ID is _id)
+                    # db_columns is already prepared (ID is _ID)
                     columns = ', '.join([f'`{h}`' for h in db_columns])
                     placeholders = ', '.join(['%s'] * len(db_columns))
                     insert_query = f"INSERT INTO `{table_name}` ({columns}) VALUES ({placeholders})"
@@ -240,7 +240,7 @@ class CASINGCUTTINGProcessor(BaseProcessor):
                 cursor.close()
 
     def _create_table(self, table_name, headers):
-        """Create table with appropriate structure (expects mapped headers, e.g. _id instead of ID)"""
+        """Create table with appropriate structure (expects mapped headers, e.g. _ID instead of ID)"""
         cursor = None
         try:
             cursor = self.connection.cursor()
@@ -250,7 +250,7 @@ class CASINGCUTTINGProcessor(BaseProcessor):
             columns.append("id INT NOT NULL AUTO_INCREMENT PRIMARY KEY")  # Add ID column first
             
             for header in headers:
-                # 'id' is already added as PK, so skip if passed in headers (though our mapping produces _id)
+                # 'id' is already added as PK, so skip if passed in headers (though our mapping produces _ID)
                 # But we add a check just in case
                 if header.lower() != 'id': 
                     sql_type = 'TEXT NOT NULL DEFAULT ""'
