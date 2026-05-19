@@ -6,6 +6,7 @@ from mysql.connector import Error
 import csv
 import os
 import shutil
+import tempfile
 
 class CASINGCUTTINGProcessor(BaseProcessor):
     def __init__(self, db_handler, email_notifier, logger):
@@ -75,11 +76,11 @@ class CASINGCUTTINGProcessor(BaseProcessor):
         
         cursor = None
         try:
-            # 1. Define expected headers
-            headers = [
+            # 1. Define expected headers (from CSV file)
+            csv_headers = [
                 'H_W', 'BIN', 'ORDER_LINE', 'MATERIAL', 'LABEL', 'ORDER', 'WINDOW',
                 'WINDOWS_SIZE', 'ROSSETTE', 'CASING LINE', 'COMPANY', 'PO', 'DATE',
-                'TIME', 'USER'
+                'TIME', 'USER', 'ID'
             ]
 
             # 2. Check if CSV file has the expected headers
@@ -89,28 +90,27 @@ class CASINGCUTTINGProcessor(BaseProcessor):
                 first_line = csvfile.readline().strip()
                 first_line_headers = [h.strip() for h in first_line.split(',')]
                 normalized_first_line_headers = [h.lower().strip() for h in first_line_headers]
-                normalized_expected_headers = [h.lower().strip() for h in headers]
+                normalized_expected_headers = [h.lower().strip() for h in csv_headers]
                 has_expected_headers = normalized_first_line_headers == normalized_expected_headers
-                self.logger.info(f"CSV headers: {first_line_headers}, Expected: {headers}, Match: {has_expected_headers}")
+                self.logger.info(f"CSV headers: {first_line_headers}, Expected: {csv_headers}, Match: {has_expected_headers}")
 
             # If headers are missing, create a temporary file with headers
             if not has_expected_headers:
-                import tempfile
                 temp_dir = tempfile.gettempdir()
                 temp_path = os.path.join(temp_dir, os.path.basename(csv_file_path) + ".tmp")
                 
                 try:
                     with open(csv_file_path, 'r', encoding='utf-8') as infile, \
                         open(temp_path, 'w', newline='', encoding='utf-8') as outfile:
-                        # Write expected headers
-                        outfile.write(','.join(headers) + '\n')
+                        # Write expected headers (CSV standard)
+                        outfile.write(','.join(csv_headers) + '\n')
                         # Copy all lines, assuming no headers in original
                         infile.seek(0)
                         outfile.writelines(infile.readlines())
                     
                     # Replace original file with temp file
                     shutil.move(temp_path, csv_file_path)
-                    self.logger.warning(f"Added headers to CSV file: {headers}")
+                    self.logger.warning(f"Added headers to CSV file: {csv_headers}")
                 except Exception as e:
                     self.logger.error(f"Error adding headers to {csv_file_path}: {str(e)}")
                     return False
@@ -127,7 +127,7 @@ class CASINGCUTTINGProcessor(BaseProcessor):
                 self.logger.info(f"Processing CSV with columns: {actual_headers}")
 
                 # Check for duplicate header rows
-                normalized_headers = [h.lower().strip() for h in headers]
+                normalized_headers = [h.lower().strip() for h in csv_headers]
                 for row in csvreader:
                     # Check if the row is a duplicate header
                     row_values = [str(row.get(h, '')).lower().strip() for h in actual_headers]
@@ -142,12 +142,16 @@ class CASINGCUTTINGProcessor(BaseProcessor):
                         for header in actual_headers:
                             value = complete_row[header]
                             if value is not None:
-                                # If the value is all whitespace, set to empty string
                                 if value.strip() == '':
                                     complete_row[header] = ''
-                                # Otherwise, trim leading and trailing spaces
                                 elif value != value.strip():
                                     complete_row[header] = value.strip()
+
+                        # --- CHANGE START ---
+                        # Remap 'ID' to '_id' to avoid conflict with PK
+                        if 'ID' in complete_row:
+                            complete_row['_id'] = complete_row.pop('ID')
+                        # --- CHANGE END ---
 
                         order_id = complete_row.get('ORDER', '')
 
@@ -167,7 +171,7 @@ class CASINGCUTTINGProcessor(BaseProcessor):
             cursor = self.connection.cursor()
             for order_id in order_ids:
                 try:
-                    query = "SELECT `ORDER`, `DATE` FROM `casingcutting` WHERE `ORDER` = %s LIMIT 1"
+                    query = f"SELECT `ORDER`, `DATE` FROM `{table_name}` WHERE `ORDER` = %s LIMIT 1"
                     cursor.execute(query, (order_id,))
                     existing_order = cursor.fetchone()
                     
@@ -182,22 +186,28 @@ class CASINGCUTTINGProcessor(BaseProcessor):
                     continue
 
             # 5. Create table if it doesn't exist
+            # --- CHANGE START ---
+            # Map actual CSV headers to DB columns (ID -> _id)
+            db_columns = ['_id' if h == 'ID' else h for h in actual_headers]
+            
             cursor.execute(f"SHOW TABLES LIKE '{table_name}'")
             if not cursor.fetchone():
-                if not self._create_table(table_name, actual_headers):
+                if not self._create_table(table_name, db_columns):
                     return False
+            # --- CHANGE END ---
 
             # 6. Insert all rows in a batch
             rows_inserted = 0
             if rows_to_insert:
                 try:
-                    db_columns = [h for h in actual_headers]
+                    # db_columns is already prepared (ID is _id)
                     columns = ', '.join([f'`{h}`' for h in db_columns])
                     placeholders = ', '.join(['%s'] * len(db_columns))
                     insert_query = f"INSERT INTO `{table_name}` ({columns}) VALUES ({placeholders})"
                     
                     for complete_row in rows_to_insert:
-                        values = [complete_row[h] for h in db_columns]
+                        # Extract values using the mapped DB column names
+                        values = [complete_row.get(h, '') for h in db_columns]
                         cursor.execute(insert_query, values)
                         rows_inserted += 1
                         self.logger.info(f"Inserted row for ORDER: {complete_row.get('ORDER', '')}")
@@ -230,34 +240,29 @@ class CASINGCUTTINGProcessor(BaseProcessor):
                 cursor.close()
 
     def _create_table(self, table_name, headers):
-        """Create table with appropriate structure"""
+        """Create table with appropriate structure (expects mapped headers, e.g. _id instead of ID)"""
         cursor = None
         try:
             cursor = self.connection.cursor()
-            
-            # Map Python types to SQL types
-            type_mapping = {
-                'id': 'INT NOT NULL AUTO_INCREMENT PRIMARY KEY'
-            }
-            # All other columns are TEXT NOT NULL DEFAULT ""
-            for header in headers:
-                if header not in type_mapping:
-                    type_mapping[header] = 'TEXT NOT NULL DEFAULT ""'
             
             # Build column definitions
             columns = []
             columns.append("id INT NOT NULL AUTO_INCREMENT PRIMARY KEY")  # Add ID column first
             
             for header in headers:
-                if header in type_mapping and header != 'id':  # Skip id as it's already added
-                    sql_type = type_mapping[header]
+                # 'id' is already added as PK, so skip if passed in headers (though our mapping produces _id)
+                # But we add a check just in case
+                if header.lower() != 'id': 
+                    sql_type = 'TEXT NOT NULL DEFAULT ""'
                     columns.append(f"`{header}` {sql_type}")
             
             # Create the table
             create_sql = f"CREATE TABLE `{table_name}` ({', '.join(columns)})"
+            self.logger.debug(f"Executing CREATE TABLE query: {create_sql}")
             cursor.execute(create_sql)
             
             self.connection.commit()
+            self.logger.info(f"Created table '{table_name}' with columns: {headers}")
             return True
             
         except Exception as e:
