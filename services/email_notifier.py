@@ -269,7 +269,11 @@ class EmailNotifier:
             'extentioncutting': ['extentioncutting'],
             'mullioncutting': ['mullioncutting'],
             'screencutting':['screencutting'],
-            'stopcutting': ['stopcutting']
+            'stopcutting': ['stopcutting'],
+            'glassstop_log':['glassstop_log'],
+            'casing_log':['casing_log'],
+            'screen_log':['screen_log'],
+            'extension_log':['extension_log'],
         }
         
         for table_type, keywords in patterns.items():

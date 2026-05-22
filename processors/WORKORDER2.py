@@ -215,7 +215,6 @@ class WORKORDER2Processor(BaseProcessor):
             
             # Map Python types to SQL types,
             type_mapping = {
-                'id': 'INT NOT NULL AUTO_INCREMENT',
                 'ORDER #': 'TEXT NOT NULL DEFAULT ""',
                 'PO': 'TEXT NOT NULL DEFAULT ""',
                 'TAG': 'TEXT NOT NULL DEFAULT ""',
@@ -229,14 +228,16 @@ class WORKORDER2Processor(BaseProcessor):
                 'NOTE': 'TEXT NOT NULL DEFAULT ""'
             }
             
-            # Build column definitions, 
-            columns = []
-            columns.append("id INT NOT NULL AUTO_INCREMENT")  # Add ID column first
+            columns = ["id INT NOT NULL AUTO_INCREMENT"]  # بدون PRIMARY KEY اینجا
+            
             
             for header in headers:
                 if header in type_mapping :
                     sql_type = type_mapping[header]
                     columns.append(f"`{header}` {sql_type}")
+
+            # Add PRIMARY KEY constraint separately
+            columns.append("PRIMARY KEY (`id`)")
             
             # Create the table
             create_sql = f"CREATE TABLE `{table_name}` ({', '.join(columns)})"

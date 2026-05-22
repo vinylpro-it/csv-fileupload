@@ -31,4 +31,20 @@ class FileProcessorFactory:
     def _extract_processor_name(self, filename):
         """استخراج نام پردازشگر از نام فایل"""
         base_name = Path(filename).stem
-        return base_name.split('_')[0].upper()
+        import re
+        
+        # حذف الگوهای تاریخ و زمان
+        clean_name = re.sub(r'_\d{4}-\d{2}-\d{2}_\d{6}$', '', base_name)
+        clean_name = re.sub(r'_\d{8,}.*$', '', clean_name)
+        clean_name = clean_name.rstrip('_')
+        parts = clean_name.split('_')
+        print("parts",parts)
+
+        if len(parts) > 1:
+            if len(parts[1]) < 3:
+                print("len",len(parts[1]))
+                clean_name = parts[0]
+
+        print("clean_name",clean_name)
+        # تبدیل به حروف بزرگ برای مطابقت با نام کلاس
+        return clean_name.upper()  # اضافه شده: تبدیل به uppercase

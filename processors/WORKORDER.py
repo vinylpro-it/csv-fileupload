@@ -228,7 +228,6 @@ class WORKORDERProcessor(BaseProcessor):
             
             # Map Python types to SQL types, excluding OPTIONS
             type_mapping = {
-                'id': 'INT NOT NULL AUTO_INCREMENT',
                 'ORDER #': 'TEXT NOT NULL DEFAULT ""',
                 'PO': 'TEXT NOT NULL DEFAULT ""',
                 'TAG': 'TEXT NOT NULL DEFAULT ""',
@@ -243,20 +242,19 @@ class WORKORDERProcessor(BaseProcessor):
             }
             
             # Build column definitions, excluding OPTIONS
-            columns = []
-            columns.append("id INT NOT NULL AUTO_INCREMENT")  # Add ID column first
+            columns = ["id INT NOT NULL AUTO_INCREMENT"]  # بدون PRIMARY KEY اینجا
             
             for header in headers:
                 if header in type_mapping and header != 'OPTIONS':
                     sql_type = type_mapping[header]
                     columns.append(f"`{header}` {sql_type}")
+
+            # Add PRIMARY KEY constraint separately
+            columns.append("PRIMARY KEY (`id`)")
             
             # Create the table
             create_sql = f"CREATE TABLE `{table_name}` ({', '.join(columns)})"
             cursor.execute(create_sql)
-            
-            # Add primary key
-            cursor.execute(f"ALTER TABLE `{table_name}` ADD PRIMARY KEY (`id`)")
             
             self.connection.commit()
             return True
