@@ -17,7 +17,7 @@ class Tab3(ttk.Frame):
         self.TABLES = [
             'glass', 'frame', 'rush', 'casingcutting', 'optlabel', 'casing',
             'extention', 'urbancutting', 'wrapping', 'extentioncutting', 'mullioncutting',
-            'screencutting', 'stopcutting', 'glassstop_log', 'casing_log', 'screen_log',
+            'screencutting', 'stopcutting', 'glasstop_log', 'casing_log', 'screen_log',
             'extension_log'
         ]
         self.setup_ui()

@@ -270,7 +270,7 @@ class EmailNotifier:
             'mullioncutting': ['mullioncutting'],
             'screencutting':['screencutting'],
             'stopcutting': ['stopcutting'],
-            'glassstop_log':['glassstop_log'],
+            'glasstop_log':['glasstop_log'],
             'casing_log':['casing_log'],
             'screen_log':['screen_log'],
             'extension_log':['extension_log'],

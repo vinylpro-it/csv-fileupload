@@ -43,7 +43,7 @@ class EXTENSION_LOGProcessor(BaseProcessor):
 
     def process(self, file_path: Path, move_dir: Path) -> bool:
         try:
-            self.logger.info(f"Processing Extension_Log file: {file_path}")
+            self.logger.info(f"Processing extension_log file: {file_path}")
             
             if not self.connect():
                 return False
@@ -63,13 +63,13 @@ class EXTENSION_LOGProcessor(BaseProcessor):
             return success
             
         except Exception as e:
-            self.logger.error(f"Error processing Extension_Log file {file_path}: {str(e)}")
+            self.logger.error(f"Error processing extension_log file {file_path}: {str(e)}")
             return False
         finally:
             self.disconnect()
 
     def upload_csv_data(self, table_name, csv_file_path):
-        """Upload CSV data to the screen_log table, checking for resends before inserts"""
+        """Upload CSV data to the extension_log table, checking for resends before inserts"""
         if not self.connection or not self.connection.is_connected():
             if not self.connect():
                 return False
@@ -79,7 +79,7 @@ class EXTENSION_LOGProcessor(BaseProcessor):
             # 1. Define expected headers (from CSV file)
             csv_headers = [
                 'SIZE', 'H AND W', 'BIN', 'LINE NUMBER', 'PROFILE TYPE',
-                'LABEL', 'ORDER NUMBER', 'WINDOW_TYPE' , 'WINDOWS SIZE', 'WINDOW LINE',
+                'LABEL', 'ORDER NUMBER', 'WINDOW_TYPE' , 'WINDOW SIZE', 'WINDOW LINE',
                 'OT', 'COLOUR IN', 'COLOUR OUT', 'RUBBER COLOUR', 'COMPANY NAME',
                 'CUSTOMER PO', 'ID','DATE', 'TIME', 'CART'
             ]
@@ -154,7 +154,7 @@ class EXTENSION_LOGProcessor(BaseProcessor):
                             complete_row['_ID'] = complete_row.pop('ID')
                         # --- CHANGE END ---
 
-                        order_ID = complete_row.get('ORDER NUMBER', '')
+                        order_ID = complete_row.get('_ID', '')
 
                         if not order_ID:
                             self.logger.warning(f"Skipping row with missing ORDER: {complete_row}")
@@ -172,7 +172,7 @@ class EXTENSION_LOGProcessor(BaseProcessor):
             cursor = self.connection.cursor()
             for order_ID in order_IDs:
                 try:
-                    query = f"SELECT `ORDER NUMBER`, `DATE` FROM `{table_name}` WHERE `ORDER NUMBER` = %s LIMIT 1"
+                    query = f"SELECT `_ID`, `DATE` FROM `{table_name}` WHERE `_ID` = %s LIMIT 1"
                     cursor.execute(query, (order_ID,))
                     existing_order = cursor.fetchone()
                     
@@ -211,7 +211,7 @@ class EXTENSION_LOGProcessor(BaseProcessor):
                         values = [complete_row.get(h, '') for h in db_columns]
                         cursor.execute(insert_query, values)
                         rows_inserted += 1
-                        self.logger.info(f"Inserted row for ORDER: {complete_row.get('ORDER NUMBER', '')}")
+                        self.logger.info(f"Inserted row for _ID: {complete_row.get('_ID', '')}")
                     
                     self.connection.commit()
                     self.logger.info(f"Inserted {rows_inserted} rows into {table_name}")
