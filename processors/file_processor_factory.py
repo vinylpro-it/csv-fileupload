@@ -44,6 +44,9 @@ class FileProcessorFactory:
             if len(parts[1]) < 3:
                 print("len",len(parts[1]))
                 clean_name = parts[0]
+            else:
+                print("aaa",parts[0])
+                clean_name = parts[0]
 
         print("clean_name",clean_name)
         # تبدیل به حروف بزرگ برای مطابقت با نام کلاس
