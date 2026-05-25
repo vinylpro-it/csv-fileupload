@@ -8,14 +8,14 @@ import os
 import shutil
 import tempfile
 
-class GLASSTOP_LOGProcessor(BaseProcessor):
+class GLASSSTOP_LOGProcessor(BaseProcessor):
     def __init__(self, db_handler, email_notifier, logger):
         super().__init__(db_handler, email_notifier, logger)
         self.config_manager = ConfigManager()
         self.connection = None
 
     def get_table_name(self):
-        return "glasstop_log"
+        return "glassstop_log"
 
     def connect(self):
         """Establish database connection"""
@@ -43,7 +43,7 @@ class GLASSTOP_LOGProcessor(BaseProcessor):
 
     def process(self, file_path: Path, move_dir: Path) -> bool:
         try:
-            self.logger.info(f"Processing Glasstop_Log file: {file_path}")
+            self.logger.info(f"Processing Glassstop_Log file: {file_path}")
             
             if not self.connect():
                 return False
@@ -63,7 +63,7 @@ class GLASSTOP_LOGProcessor(BaseProcessor):
             return success
             
         except Exception as e:
-            self.logger.error(f"Error processing Glasstop_Log file {file_path}: {str(e)}")
+            self.logger.error(f"Error processing Glassstop_Log file {file_path}: {str(e)}")
             return False
         finally:
             self.disconnect()
