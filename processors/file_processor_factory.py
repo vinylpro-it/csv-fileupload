@@ -48,14 +48,13 @@ class FileProcessorFactory:
                         clean_name = str(parts[0]+"_"+parts[1])
                 else:
                     pass
-            # if len(parts[1]) < 3:
-            #     print("len",len(parts[1]))
-            #     clean_name = parts[0]
-            # elif len(parts[1]) == 3:
-
-            # else:
-            #     print("aaa",parts[0])
-            #     clean_name = parts[0]
+            if len(parts) == 2:
+                if parts[1].isdigit():
+                    clean_name = parts[0]
+                elif parts[0] == 'FRAMESCUTTING':
+                    clean_name = parts[0]
+                else:
+                    clean_name = str(parts[0]+"_"+parts[1])
 
         print("clean_name",clean_name)
         # تبدیل به حروف بزرگ برای مطابقت با نام کلاس
