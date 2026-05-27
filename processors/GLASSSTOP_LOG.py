@@ -168,20 +168,26 @@ class GLASSSTOP_LOGProcessor(BaseProcessor):
                         self.logger.error(f"Row processing error for row {complete_row}: {str(e)}")
                         continue
 
-            # 4. Check for existing orders in the database
+            # 4. Check for existing orders in the database (count how many times each order exists)
             cursor = self.connection.cursor()
             for order_ID in order_IDs:
                 try:
-                    query = f"SELECT `_ID`, `DATE` FROM `{table_name}` WHERE `_ID` = %s LIMIT 1"
+                    # Instead of LIMIT 1, count how many records exist with this _ID
+                    query = f"SELECT COUNT(*) FROM `{table_name}` WHERE `_ID` = %s"
                     cursor.execute(query, (order_ID,))
-                    existing_order = cursor.fetchone()
+                    count = cursor.fetchone()[0]
                     
-                    if existing_order:
+                    if count >= 2:  
+                        # Get the latest date (optional)
+                        date_query = f"SELECT `DATE` FROM `{table_name}` WHERE `_ID` = %s ORDER BY id DESC LIMIT 1"
+                        cursor.execute(date_query, (order_ID,))
+                        latest_date = cursor.fetchone()
+                        
                         resends.append({
                             'order': order_ID,
-                            'original_date': existing_order[1] or ''
+                            'original_date': latest_date[0] if latest_date else '',
                         })
-                        self.logger.info(f"Found existing ORDER for resend: {order_ID}")
+                        self.logger.warning(f"Found {count} duplicate records for _ID: {order_ID}")
                 except Exception as e:
                     self.logger.error(f"Error checking ORDER {order_ID}: {str(e)}")
                     continue

@@ -168,20 +168,31 @@ class CASING_LOGProcessor(BaseProcessor):
                         self.logger.error(f"Row processing error for row {complete_row}: {str(e)}")
                         continue
 
-            # 4. Check for existing orders in the database
+            # 4. Check for existing orders in the database (count duplicates)
             cursor = self.connection.cursor()
             for order_ID in order_IDs:
                 try:
-                    query = f"SELECT `_ID`, `DATE` FROM `{table_name}` WHERE `_ID` = %s LIMIT 1"
-                    cursor.execute(query, (order_ID,))
-                    existing_order = cursor.fetchone()
+                    # First, count how many records exist with this _ID
+                    count_query = f"SELECT COUNT(*) FROM `{table_name}` WHERE `_ID` = %s"
+                    cursor.execute(count_query, (order_ID,))
+                    record_count = cursor.fetchone()[0]
                     
-                    if existing_order:
+                    # If 2 or more records exist, consider it as duplicate/resend
+                    if record_count >= 2:
+                        # Get the date of the most recent record (optional)
+                        date_query = f"SELECT `DATE` FROM `{table_name}` WHERE `_ID` = %s ORDER BY id DESC LIMIT 1"
+                        cursor.execute(date_query, (order_ID,))
+                        latest_date = cursor.fetchone()
+                        
                         resends.append({
                             'order': order_ID,
-                            'original_date': existing_order[1] or ''
+                            'original_date': latest_date[0] if latest_date else '',
                         })
-                        self.logger.info(f"Found existing ORDER for resend: {order_ID}")
+                        self.logger.warning(f"Found {record_count} duplicate records for _ID: {order_ID}")
+                    elif record_count == 1:
+                        # Only one record exists - this might be the first occurrence
+                        self.logger.debug(f"First occurrence for _ID: {order_ID} (no duplicate yet)")
+                        
                 except Exception as e:
                     self.logger.error(f"Error checking ORDER {order_ID}: {str(e)}")
                     continue

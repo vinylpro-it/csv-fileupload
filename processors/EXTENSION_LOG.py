@@ -168,20 +168,30 @@ class EXTENSION_LOGProcessor(BaseProcessor):
                         self.logger.error(f"Row processing error for row {complete_row}: {str(e)}")
                         continue
 
-            # 4. Check for existing orders in the database
+            # 4. Check for existing orders in the database (count duplicates)
             cursor = self.connection.cursor()
             for order_ID in order_IDs:
                 try:
-                    query = f"SELECT `_ID`, `DATE` FROM `{table_name}` WHERE `_ID` = %s LIMIT 1"
-                    cursor.execute(query, (order_ID,))
-                    existing_order = cursor.fetchone()
+                    # Count how many records exist with this _ID
+                    count_query = f"SELECT COUNT(*) FROM `{table_name}` WHERE `_ID` = %s"
+                    cursor.execute(count_query, (order_ID,))
+                    record_count = cursor.fetchone()[0]
                     
-                    if existing_order:
+                    # Only consider as resend if there are 2 or more existing records
+                    if record_count >= 2:
+                        # Get the latest date for this _ID
+                        date_query = f"SELECT `DATE` FROM `{table_name}` WHERE `_ID` = %s ORDER BY id DESC LIMIT 1"
+                        cursor.execute(date_query, (order_ID,))
+                        latest_date = cursor.fetchone()
+                        
                         resends.append({
                             'order': order_ID,
-                            'original_date': existing_order[1] or ''
+                            'original_date': latest_date[0] if latest_date else '',
                         })
-                        self.logger.info(f"Found existing ORDER for resend: {order_ID}")
+                        self.logger.warning(f"Found {record_count} duplicate records for _ID: {order_ID} - will send notification")
+                    else:
+                        self.logger.debug(f"_ID: {order_ID} has {record_count} record(s) - no notification needed")
+                        
                 except Exception as e:
                     self.logger.error(f"Error checking ORDER {order_ID}: {str(e)}")
                     continue
