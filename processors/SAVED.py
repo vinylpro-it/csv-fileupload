@@ -85,7 +85,7 @@ class SAVEDProcessor(BaseProcessor):
         try:
             # 1. هدرهای مورد انتظار برای این فایل جدید (بر اساس فایل ضمیمه)
             headers = [
-                'DATE', 'ORDER NUMBER', 'COMPANY NAME', 'CUSTOMER PO', 'USER'
+                'DATE', 'ORDER NUMBER', 'COMPANY NAME', 'CUSTOMER PO', 'USER',  'QTY'
             ]
 
             # 2. چک کردن هدرها و در صورت نیاز اضافه کردن
